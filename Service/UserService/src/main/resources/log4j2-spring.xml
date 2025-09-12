@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="TRACE"> <!-- SET TO TRACE TO SEE WHAT'S HAPPENING -->
+    <Properties>
+        <Property name="LOG_PATTERN">%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n</Property>
+        <!-- Use an ABSOLUTE path for testing -->
+        <Property name="APP_LOG_ROOT">C:/Users/theng/Desktop/Assigment-Grandle/Service/UserService/logs</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- SIMPLE File appender, NOT Rolling -->
+        <File name="File" fileName="${APP_LOG_ROOT}/test.log">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </File>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/> <!-- Make sure this is here -->
+        </Root>
+    </Loggers>
+</Configuration>

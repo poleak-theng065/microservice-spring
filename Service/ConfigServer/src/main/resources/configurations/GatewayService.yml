@@ -1,0 +1,40 @@
+spring:
+  security:
+    jwt:
+      secret-key: "BeL3l2reIpmFMl+rWCtrYwgr/Ltf7uJWSegV2Mzd9N2ghrxukiiW93g="
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: UserService
+          uri: lb://USERSERVICE
+          predicates:
+            - Path=/auth/**
+
+        - id: UserServiceSecure
+          uri: lb://USERSERVICE
+          predicates:
+            - Path=/api/**
+
+        - id: CourseService
+          uri: lb://COURSESERVICE
+          predicates:
+              - Path=/course/**
+
+logging:
+  level:
+    com.assigment.gatewayservice: DEBUG
+
+  main:
+    allow-bean-definition-overriding: true
+
+
+server:
+  port: 8222
+
+redis:
+  host: localhost
+  port: 6379
+

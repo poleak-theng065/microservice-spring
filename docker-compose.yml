@@ -1,0 +1,84 @@
+services:
+  postgres:
+    container_name: ms_pg_sql
+    image: postgres
+    environment:
+      POSTGRES_USER: leak
+      POSTGRES_PASSWORD: leak@apd2025
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - microservice-net
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: ms_pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - microservice-net
+    restart: unless-stopped
+
+  redis:
+    container_name: ms_redis
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - microservice-net
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  redis-commander: # ✅ Redis UI
+    container_name: ms_redis_commander
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:ms_redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - microservice-net
+    restart: unless-stopped
+
+  rabbitmq: # ✅ RabbitMQ with management UI
+    container_name: ms_rabbitmq
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    networks:
+      - microservice-net
+    restart: unless-stopped
+
+  maildev:
+    container_name: ms_maildev
+    image: maildev/maildev
+    ports:
+      - "1080:1080"   # Web interface
+      - "1025:1025"   # SMTP port
+    networks:
+      - microservice-net
+    restart: unless-stopped
+
+networks:
+  microservice-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  redis:
