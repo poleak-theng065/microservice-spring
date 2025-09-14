@@ -1,6 +1,6 @@
 package com.assigment.userservice.constants;
 
-public enum Status {
+public enum StatusEnum {
     ENABLE,
     DISABLE
 }

@@ -4,13 +4,16 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.springframework.cloud.client.loadbalancer.DefaultResponse;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Data
 @Accessors(chain = true)
 @Getter
 @Setter
 public class LoginResponse {
+    private int status;
+    private String message;
     private TokenResponse token;
-    private UserResponse user;  // reuse your existing user response DTO
     private long expiresIn;
 }

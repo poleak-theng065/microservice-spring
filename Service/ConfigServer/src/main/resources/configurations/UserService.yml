@@ -13,7 +13,7 @@ spring:
   security:
     jwt:
       secret-key: "BeL3l2reIpmFMl+rWCtrYwgr/Ltf7uJWSegV2Mzd9N2ghrxukiiW93g="
-      expiration-time: 3600000
+      expiration-time: 43200000
       refresh-expiration-time: 604800000
 
   rabbitmq:

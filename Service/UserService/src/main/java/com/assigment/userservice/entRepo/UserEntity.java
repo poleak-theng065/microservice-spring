@@ -1,6 +1,6 @@
 package com.assigment.userservice.entRepo;
 
-import com.assigment.userservice.constants.Status;
+import com.assigment.userservice.constants.StatusEnum;
 import com.assigment.userservice.constants.RoleEnum;
 import jakarta.persistence.*;
 import lombok.*;
@@ -64,7 +64,7 @@ public class UserEntity implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status = Status.ENABLE;
+    private StatusEnum status = StatusEnum.ENABLE;
 
     /* ============================
        AUDIT FIELDS
