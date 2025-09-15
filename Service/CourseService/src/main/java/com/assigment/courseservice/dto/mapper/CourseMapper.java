@@ -11,14 +11,15 @@ public class CourseMapper {
         return CourseEntity.builder()
                 .courseName(request.getCourseName())
                 .courseDescription(request.getCourseDescription())
-                .courseStatus(request.getCourseStatus())
-                .build();
+                .build(); // do not take status from request
     }
 
     public static void updateEntity(CourseEntity entity, UpdateCourseRequest request) {
         entity.setCourseName(request.getCourseName());
         entity.setCourseDescription(request.getCourseDescription());
-        entity.setCourseStatus(request.getCourseStatus());
+        if (request.getCourseStatus() != null) {
+            entity.setCourseStatus(request.getCourseStatus());
+        }
     }
 
     public static CourseResponse toResponse(CourseEntity entity) {
@@ -27,17 +28,7 @@ public class CourseMapper {
                 .courseName(entity.getCourseName())
                 .courseDescription(entity.getCourseDescription())
                 .courseStatus(entity.getCourseStatus())
-                .message("Course retrieved successfully!")
-                .build();
-    }
-
-    public static CourseResponse CourseDisabledResponse(CourseEntity entity) {
-        return CourseResponse.builder()
-                .courseID(entity.getCourseID())
-                .courseName("Course disabled")
-                .courseDescription("Course disabled")
-                .courseStatus(entity.getCourseStatus())
-                .message("Course " + entity.getCourseName() + " is disable!")
+                .message(null)
                 .build();
     }
 }

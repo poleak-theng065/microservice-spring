@@ -14,7 +14,7 @@ public interface AuthenticationService {
     // Login / Token
     LoginResponse login(LoginUserDto dto);
     String refreshAccessToken(String refreshToken);
-    void logout(String refreshToken);
+    void logout(String userEmail);
 
     // Utilities
     boolean existsByEmail(String email);

@@ -1,4 +1,4 @@
-package com.assigment.courseservice.dto.response;
+package com.assigment.gatewayservice.dto.response;
 
 import lombok.*;
 
@@ -7,10 +7,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CourseErrorResponse {
+public class GatewayErrorResponse {
     private int status;
     private String message;
     private ErrorDetails details;
+    private String path;
 
     @Getter
     @Setter

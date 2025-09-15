@@ -1,5 +1,7 @@
 package com.assigment.gatewayservice.config;
 
+import com.assigment.gatewayservice.Security.CustomAccessDeniedHandler;
+import com.assigment.gatewayservice.Security.CustomAuthenticationEntryPoint;
 import com.assigment.gatewayservice.filter.JwtAuthenticationWebFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,12 +20,20 @@ public class SecurityConfig {
     private static final Logger logger = LogManager.getLogger(SecurityConfig.class);
 
     @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
-                                                            JwtAuthenticationWebFilter jwtFilter) {
+    public SecurityWebFilterChain springSecurityFilterChain(
+            ServerHttpSecurity http,
+            JwtAuthenticationWebFilter jwtFilter,
+            CustomAuthenticationEntryPoint authEntryPoint,
+            CustomAccessDeniedHandler accessDeniedHandler) {
+
         logger.info("Initializing SecurityWebFilterChain with JWT filter at AUTHENTICATION order");
 
         SecurityWebFilterChain chain = http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/user").hasAnyRole("USER", "ADMIN")

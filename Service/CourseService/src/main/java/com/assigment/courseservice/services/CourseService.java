@@ -2,23 +2,26 @@ package com.assigment.courseservice.services;
 
 import com.assigment.courseservice.dto.request.CreateCourseRequest;
 import com.assigment.courseservice.dto.request.UpdateCourseRequest;
+import com.assigment.courseservice.dto.response.CoursePaginationResponse;
+import com.assigment.courseservice.dto.response.CourseStandardResponse;
 import com.assigment.courseservice.dto.response.CourseResponse;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
+import java.util.UUID;
 
 public interface CourseService {
 
-    CourseResponse createCourse(CreateCourseRequest request);
+    CourseStandardResponse createCourse(CreateCourseRequest request);
 
-    CourseResponse updateCourse(String courseID, UpdateCourseRequest request);
+    CourseStandardResponse updateCourse(String courseId, UpdateCourseRequest request);
 
-    CourseResponse getCourseById(String courseID);
+    CourseStandardResponse getCourseById(String courseId);
 
-    List<CourseResponse> getAllCoursesForAdmin();   // admin → see all
+    Page<CourseResponse> getEnabledCourses(int page, int size);
 
-    List<CourseResponse> getAllCoursesForUser();    // user → only enabled
+    Page<CourseResponse> getAllCourses(int page, int size);
 
-    CourseResponse enableCourse(String courseID);
+    CourseStandardResponse updateCourseStatus(String courseId, boolean enabled);
 
-    CourseResponse disableCourse(String courseID);
+    CourseStandardResponse deleteCourse(String courseId);
 }

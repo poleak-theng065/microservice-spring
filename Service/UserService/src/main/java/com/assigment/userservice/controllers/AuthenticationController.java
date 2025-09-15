@@ -9,7 +9,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -59,14 +61,20 @@ public class AuthenticationController {
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody Map<String, String> body) {
-        String refreshToken = body.get("refreshToken");
-        logger.info("Logout request for refreshToken: {}", refreshToken);
-        authenticationService.logout(refreshToken);
-        logger.info("Logged out successfully for refreshToken: {}", refreshToken);
+    @GetMapping("/logout")
+    public ResponseEntity<?> logout(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("User is not authenticated");
+        }
+
+        String userEmail = authentication.getName();
+        authenticationService.logout(userEmail);
+
         return ResponseEntity.ok("Logged out successfully");
     }
+
+
 
     @PostMapping("/reset")
     public ResponseEntity<String> reset(@RequestBody Map<String, String> body) throws JsonProcessingException {

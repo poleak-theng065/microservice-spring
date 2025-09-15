@@ -1,10 +1,10 @@
 package com.assigment.courseservice.entRepo;
 
+import com.assigment.courseservice.constants.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 
 public interface CourseRepository extends JpaRepository<CourseEntity, String> {
-
-    Optional<CourseEntity> findByCourseID(String courseID);
-
+    Page<CourseEntity> findByCourseStatus(Status courseStatus, Pageable pageable);
 }

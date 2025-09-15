@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -166,12 +167,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void logout(String refreshToken) {
-        if (refreshToken != null) {
-            redisTemplate.delete("REFRESH:" + refreshToken);
-            logger.info("User logged out, refresh token deleted: {}", refreshToken);
+    public void logout(String userEmail) {
+        // Get all refresh token keys
+        Set<String> keys = redisTemplate.keys("REFRESH:*");
+
+        if (keys != null) {
+            for (String key : keys) {
+                String value = redisTemplate.opsForValue().get(key);
+                if (userEmail.equals(value)) {
+                    redisTemplate.delete(key);
+                    logger.info("Deleted refresh token {} for user: {}", key, userEmail);
+                    break; // stop after deleting the first matching token
+                }
+            }
+        } else {
+            logger.info("No refresh tokens found in Redis.");
         }
     }
+
+
 
     /* ============================
        UTILITIES / MISC
