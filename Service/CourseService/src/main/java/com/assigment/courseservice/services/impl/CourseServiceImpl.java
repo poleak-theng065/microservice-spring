@@ -18,8 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
@@ -65,6 +63,13 @@ public class CourseServiceImpl implements CourseService {
     public CourseStandardResponse getCourseById(String courseId) {
         CourseEntity course = repository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id " + courseId));
+
+        if(course.getCourseStatus()==Status.DISABLE) {
+            return CourseStandardResponse.builder()
+                    .status(401)
+                    .message("Course is disable")
+                    .build();
+        }
 
         return CourseStandardResponse.builder()
                 .status(200)

@@ -27,6 +27,20 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    // Handle duplicate resources (email/phone)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException exp) {
+        Map<String, String> details = new HashMap<>();
+        details.put("error", exp.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Duplicate resource")
+                        .details(details)
+                        .build());
+    }
+
     // Handle validation errors (for @Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException exp) {
@@ -45,9 +59,11 @@ public class GlobalExceptionHandler {
     // Handle unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        // Log the exception
+        ex.printStackTrace();
+
         Map<String, String> details = new HashMap<>();
-        details.put("error", ex.getClass().getSimpleName());
-        details.put("message", ex.getMessage());
+        details.put("message", "Something went wrong. Please try again later.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.builder()

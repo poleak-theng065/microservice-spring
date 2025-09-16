@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
@@ -42,51 +43,89 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserStandardResponse createUser(@Valid UserRequest request) {
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
+        try {
+            if (request.getPassword() == null || request.getPassword().isBlank()) {
+                return UserStandardResponse.builder()
+                        .status(400)
+                        .message("Password is required when creating a user")
+                        .users(List.of())
+                        .build();
+            }
+
+            UserEntity toSave = mapper.toUser(request);
+            toSave.setPassword(passwordEncoder.encode(request.getPassword()));
+
+            if (toSave.getRole() == null) {
+                toSave.setRole(RoleEnum.USER);
+            }
+            if (toSave.getStatus() == null) {
+                toSave.setStatus(StatusEnum.ENABLE);
+            }
+
+            var user = repository.save(toSave);
+            logger.info("Created new user with ID: {}", user.getUserID());
+
+            return UserStandardResponse.builder()
+                    .status(200)
+                    .message("User created successfully")
+                    .users(List.of(mapper.fromUser(user)))
+                    .build();
+
+        } catch (DataIntegrityViolationException e) {
+            String errorMessage = "Email or phone number already in use";
+            logger.error("Failed to create user due to constraint violation", e);
+
+            // check which field caused the violation
+            if (repository.findByEmail(request.getEmail()).isPresent()) {
+                errorMessage = "Email already exists";
+            } else if (repository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+                errorMessage = "Phone number already exists";
+            }
+
             return UserStandardResponse.builder()
                     .status(400)
-                    .message("Password is required when creating a user")
+                    .message(errorMessage)
                     .users(List.of())
                     .build();
         }
-
-        UserEntity toSave = mapper.toUser(request);
-        toSave.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        if (toSave.getRole() == null) {
-            toSave.setRole(RoleEnum.USER);
-        }
-        if (toSave.getStatus() == null) {
-            toSave.setStatus(StatusEnum.ENABLE);
-        }
-
-        var user = repository.save(toSave);
-        logger.info("Created new user with ID: {}", user.getUserID());
-
-        return UserStandardResponse.builder()
-                .status(200)
-                .message("User created successfully")
-                .users(List.of(mapper.fromUser(user)))
-                .build();
     }
+
 
     @Override
     public UserStandardResponse updateUser(String userID, @Valid UserRequest request) {
-        var user = repository.findById(userID)
-                .orElseThrow(() -> new UserNotFoundException(
-                        format("Cannot update user:: No user found with ID:: %s", userID)
-                ));
+        try{
+            var user = repository.findById(userID)
+                    .orElseThrow(() -> new UserNotFoundException(
+                            format("Cannot update user:: No user found with ID:: %s", userID)
+                    ));
 
-        mergeUser(user, request);
-        var savedUser = repository.save(user);
+            mergeUser(user, request);
+            var savedUser = repository.save(user);
 
-        logger.info("Updated user with ID: {}", userID);
+            logger.info("Updated user with ID: {}", userID);
 
-        return UserStandardResponse.builder()
-                .status(200)
-                .message("User updated successfully")
-                .users(List.of(mapper.fromUser(savedUser)))
-                .build();
+            return UserStandardResponse.builder()
+                    .status(200)
+                    .message("User updated successfully")
+                    .users(List.of(mapper.fromUser(savedUser)))
+                    .build();
+        }catch (DataIntegrityViolationException e) {
+            String errorMessage = "Email or phone number already in use";
+            logger.error("Failed to create user due to constraint violation", e);
+
+            // check which field caused the violation
+            if (repository.findByEmail(request.getEmail()).isPresent()) {
+                errorMessage = "Email already exists";
+            } else if (repository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+                errorMessage = "Phone number already exists";
+            }
+
+            return UserStandardResponse.builder()
+                    .status(400)
+                    .message(errorMessage)
+                    .users(List.of())
+                    .build();
+        }
     }
 
     private void mergeUser(UserEntity user, UserRequest request) {

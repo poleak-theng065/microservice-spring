@@ -1,5 +1,6 @@
 package com.assigment.userservice.services.impl;
 
+import com.assigment.userservice.configs.RabbitConfig;
 import com.assigment.userservice.dto.request.LoginUserDto;
 import com.assigment.userservice.dto.request.RegisterUserDto;
 import com.assigment.userservice.dto.response.*;
@@ -7,6 +8,7 @@ import com.assigment.userservice.entRepo.UserEntity;
 import com.assigment.userservice.entRepo.UserRepository;
 import com.assigment.userservice.constants.RoleEnum;
 import com.assigment.userservice.constants.StatusEnum;
+import com.assigment.userservice.exceptions.DuplicateResourceException;
 import com.assigment.userservice.services.AuthenticationService;
 import com.assigment.userservice.services.JwtService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,8 +22,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +69,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void initiateSignup(RegisterUserDto dto) throws JsonProcessingException {
         String verificationToken = UUID.randomUUID().toString();
 
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new DuplicateResourceException("Email already exists");
+        } else if (userRepository.findByPhoneNumber(dto.getPhoneNumber()).isPresent()) {
+            throw new DuplicateResourceException("Phone number already exists");
+        }
+
         redisTemplate.opsForValue().set(
                 "SIGNUP:" + verificationToken,
                 objectMapper.writeValueAsString(dto),
@@ -73,8 +82,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
 
         rabbitTemplate.convertAndSend(
-                "mail.exchange",
-                "mail.signup",
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.VERIFICATION_ROUTING_KEY,
                 new VerificationMessage(dto.getEmail(), verificationToken)
         );
 
@@ -125,8 +134,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             String accessToken = jwtService.generateAccessToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            redisTemplate.opsForValue()
-                    .set("REFRESH:" + refreshToken, user.getUsername(), 7, TimeUnit.DAYS);
+            redisTemplate.opsForValue().set("REFRESH:" + refreshToken, user.getUsername(), 7, TimeUnit.DAYS);
 
             logger.info("Login successful, tokens generated for email: {}", dto.getEmail());
 
@@ -142,50 +150,65 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         } catch (Exception ex) {
             logger.warn("Login failed for email: {}", dto.getEmail());
-
             return new LoginResponse()
                     .setStatus(401)
                     .setMessage("Invalid email or password");
         }
     }
 
-
     @Override
-    public String refreshAccessToken(String refreshToken) {
+    public RefreshTokenResponse refreshAccessToken(String refreshToken) {
         String username = redisTemplate.opsForValue().get("REFRESH:" + refreshToken);
 
         if (username == null) {
             logger.warn("Refresh token invalid or expired: {}", refreshToken);
-            throw new RuntimeException("Invalid refresh token");
+            return RefreshTokenResponse.builder()
+                    .status(401)
+                    .message("Invalid or expired refresh token")
+                    .accessToken(null)
+                    .build();
         }
 
-        UserEntity user = userRepository.findByEmail(username).orElseThrow();
-        String newAccessToken = jwtService.generateAccessToken(user);
+        UserEntity user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
+        String newAccessToken = jwtService.generateAccessToken(user);
         logger.info("Access token refreshed for user: {}", username);
-        return newAccessToken;
+
+        return RefreshTokenResponse.builder()
+                .status(200)
+                .message("Access token refreshed successfully")
+                .accessToken(newAccessToken)
+                .build();
     }
 
     @Override
-    public void logout(String userEmail) {
-        // Get all refresh token keys
+    public UserStandardResponse logout(String userEmail) {
+        boolean tokenDeleted = false;
         Set<String> keys = redisTemplate.keys("REFRESH:*");
 
-        if (keys != null) {
+        if (keys != null && !keys.isEmpty()) {
             for (String key : keys) {
                 String value = redisTemplate.opsForValue().get(key);
                 if (userEmail.equals(value)) {
                     redisTemplate.delete(key);
                     logger.info("Deleted refresh token {} for user: {}", key, userEmail);
-                    break; // stop after deleting the first matching token
+                    tokenDeleted = true;
+                    break;
                 }
             }
-        } else {
-            logger.info("No refresh tokens found in Redis.");
         }
+
+        if (!tokenDeleted) {
+            logger.info("No refresh tokens found for user: {}", userEmail);
+        }
+
+        return UserStandardResponse.builder()
+                .status(200)
+                .message("Logged out successfully")
+                .users(List.of())
+                .build();
     }
-
-
 
     /* ============================
        UTILITIES / MISC
@@ -202,8 +225,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         redisTemplate.opsForValue().set("RESET_TOKEN:" + resetToken, email, 10, TimeUnit.MINUTES);
 
         rabbitTemplate.convertAndSend(
-                "mail.exchange",
-                "mail.reset",
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.RESET_ROUTING_KEY,
                 new ResetMessage(email, resetToken)
         );
 
@@ -213,6 +236,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public boolean resetPassword(String token, String newPassword) {
         String email = redisTemplate.opsForValue().get("RESET_TOKEN:" + token);
+
         if (email == null) {
             logger.warn("Reset password failed: invalid or expired token: {}", token);
             return false;

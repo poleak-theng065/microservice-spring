@@ -7,7 +7,6 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.messaging.converter.MessageConverter;
 
 @Configuration
 public class RedisConfig {

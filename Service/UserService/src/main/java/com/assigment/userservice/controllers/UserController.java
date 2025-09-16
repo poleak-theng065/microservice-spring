@@ -68,7 +68,7 @@ public class UserController {
     /* DELETE USER (admin only) */
     @DeleteMapping("/{userID}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity delete(@PathVariable("userID") String userID) {
+    public ResponseEntity<?> delete(@PathVariable("userID") String userID) {
         return ResponseEntity.ok(service.deleteCustomer(userID));
     }
 
@@ -95,5 +95,4 @@ public class UserController {
         PaginatedUserResponse response = service.findAllUsersPaginated(page, size, baseUrl);
         return ResponseEntity.ok(response);
     }
-
 }
